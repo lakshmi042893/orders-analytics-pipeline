@@ -15,19 +15,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Determine environment from branch
+      - name: Determine environment
         id: env
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "job_id=468466098265190" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/preprod" ]]; then
             echo "environment=preprod" >> $GITHUB_OUTPUT
+            echo "job_id=468466098265190" >> $GITHUB_OUTPUT
           else
             echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "job_id=468466098265190" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Trigger Databricks Job
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "🚀 Triggering Databricks deployment for ${{ steps.env.outputs.environment }}"
+          
+          response=$(curl -X POST \
+            ${{ secrets.DATABRICKS_HOST }}/api/2.1/jobs/run-now \
+            -H "Authorization: Bearer ${{ secrets.DATABRICKS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "job_id": ${{ steps.env.outputs.job_id }}
+            }')
+          
+          echo "Response: $response"
+          run_id=$(echo $response | jq -r '.run_id')
+          
+          if [ "$run_id" != "null" ]; then
+            echo "✅ Job triggered successfully! Run ID: $run_id"
+            echo "📊 View run: ${{ secrets.DATABRICKS_HOST }}/#job/${{ steps.env.outputs.job_id }}/run/$run_id"
+          else
+            echo "❌ Failed to trigger job"
+            exit 1
           fi
       
       - name: Print deployment info
+        if: github.ref != 'refs/heads/main'
         run: |
-          echo "🚀 Deploying to ${{ steps.env.outputs.environment }} environment"
+          echo "🎯 Environment: ${{ steps.env.outputs.environment }}"
           echo "📂 Branch: ${{ github.ref_name }}"
-          echo "✅ Ready for Databricks deployment"
+          echo "ℹ️  Auto-deployment only runs on main branch"
