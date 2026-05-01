@@ -1,0 +1,33 @@
+name: Orders Pipeline CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+      - preprod
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Determine environment from branch
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/preprod" ]]; then
+            echo "environment=preprod" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Print deployment info
+        run: |
+          echo "🚀 Deploying to ${{ steps.env.outputs.environment }} environment"
+          echo "📂 Branch: ${{ github.ref_name }}"
+          echo "✅ Ready for Databricks deployment"
