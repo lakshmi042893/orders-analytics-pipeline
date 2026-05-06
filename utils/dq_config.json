@@ -1,0 +1,32 @@
+{
+    "bronze": {
+        "table": "orders_raw",
+        "min_rows": 9000,
+        "max_rows": 11000,
+        "critical_columns": ["order_id", "customer_id", "total_amount", "quantity"],
+        "valid_values": {
+            "order_priority": ["Low", "Medium", "High", "Urgent"],
+            "customer_segment": ["VIP", "Premium", "Standard", "Budget"]
+        }
+    },
+    "silver": {
+        "table": "orders_clean",
+        "min_retention_rate": 95,
+        "critical_columns": ["order_id", "customer_id", "total_amount", "quantity", "fulfillment_priority"],
+        "valid_values": {
+            "fulfillment_priority": ["Critical", "Rush", "Normal"],
+            "order_size_category": ["Bulk", "Regular", "Small"]
+        },
+        "business_logic": {
+            "is_high_value_threshold": 500
+        }
+    },
+    "gold": {
+        "tables": ["FactOrders", "DimCustomers", "DimProducts", "DimRegion"],
+        "fact_table": "FactOrders",
+        "join_keys": {
+            "DimCustomers": "DimCustomerKey",
+            "DimProducts": "DimProductKey"
+        }
+    }
+}
