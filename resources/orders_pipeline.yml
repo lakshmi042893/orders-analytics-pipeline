@@ -1,0 +1,63 @@
+resources:
+  jobs:
+    orders_pipeline_prod_deployment:
+      name: orders-pipeline-prod-deployment
+      email_notifications:
+        on_success:
+          - lakshmi042893@gmail.com
+        on_failure:
+          - lakshmi042893@gmail.com
+      schedule:
+        quartz_cron_expression: 0 */15 * * * ?
+        timezone_id: America/New_York
+        pause_status: PAUSED
+      tasks:
+        - task_key: bronze_ingestion
+          notebook_task:
+            notebook_path: /Workspace/Users/lakshmisas96@gmail.com/orders-project/orders-analytics-pipeline/notebooks/01_bronze_orders
+            base_parameters:
+              environment: "{{job.parameters.environment}}"
+            source: WORKSPACE
+
+        - task_key: silver_cleaning
+          depends_on:
+            - task_key: bronze_ingestion
+          notebook_task:
+            notebook_path: /Workspace/Users/lakshmisas96@gmail.com/orders-project/orders-analytics-pipeline/notebooks/02_silver_orders
+            base_parameters:
+              environment: "{{job.parameters.environment}}"
+            source: WORKSPACE
+
+        - task_key: gold_dimensions
+          depends_on:
+            - task_key: silver_cleaning
+          notebook_task:
+            notebook_path: /Workspace/Users/lakshmisas96@gmail.com/orders-project/orders-analytics-pipeline/notebooks/03_gold_dimensions
+            base_parameters:
+              environment: "{{job.parameters.environment}}"
+            source: WORKSPACE
+
+        - task_key: gold_facts
+          depends_on:
+            - task_key: gold_dimensions
+          notebook_task:
+            notebook_path: /Workspace/Users/lakshmisas96@gmail.com/orders-project/orders-analytics-pipeline/notebooks/04_gold_factorders
+            base_parameters:
+              environment: "{{job.parameters.environment}}"
+            source: WORKSPACE
+
+        - task_key: data_quality_tests
+          depends_on:
+            - task_key: gold_facts
+          notebook_task:
+            notebook_path: /Workspace/Users/lakshmisas96@gmail.com/orders-project/orders-analytics-pipeline/notebooks/06_data_quality_tests
+            base_parameters:
+              environment: "{{job.parameters.environment}}"
+            source: WORKSPACE
+
+      queue:
+        enabled: true
+      parameters:
+        - name: environment
+          default: prod
+      performance_target: PERFORMANCE_OPTIMIZED
